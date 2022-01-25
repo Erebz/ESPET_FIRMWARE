@@ -47,27 +47,43 @@ void ESPet::tick(){
   }
 }
 
-void ESPet::feed(double bonus, double malus){
-  _hunger -= bonus;
+bool ESPet::feed(double bonus, double malus){
+  if(canEat()){
+    _hunger -= bonus;  
+    return true;
+  }else{
+    return false;
+  }
 }
 
-void ESPet::sleep(double bonus, double malus){
-  _fatigue = 0;
-  _health += bonus;
-  _hunger += malus;
-  _sleeping = true;
+bool ESPet::sleep(double bonus, double malus){
+  if(canSleep()){
+    _fatigue = 0;
+    _health += bonus;
+    _hunger += malus;
+    _sleeping = true;
+      return true;
+  }else{
+    return false;
+  }
 }
 
-void ESPet::play(double bonus, double malus){
-  _happiness += bonus;
-  _fatigue += malus;
-  _hunger += malus;
-  _playing = true;
+bool ESPet::play(double bonus, double malus){
+  if(canPlay()){
+    _happiness += bonus;
+    _fatigue += malus;
+    _hunger += malus;
+    _playing = true;
+    return true;
+  }else{
+    return false;
+  }
 }
 
-void ESPet::treat(double bonus, double malus){
+bool ESPet::treat(double bonus, double malus){
   _happiness += bonus;
   _health -= malus;
+  return true;
 }
 
 bool ESPet::canSleep(){
@@ -76,6 +92,18 @@ bool ESPet::canSleep(){
 
 bool ESPet::canPlay(){
   return _fatigue <= 50 && _hunger <= 20;
+}
+
+bool ESPet::canEat(){
+  return _hunger >= 40 && _happiness >= 50;   
+}
+
+bool ESPet::isSleeping(){
+  return _sleeping;
+}
+
+bool ESPet::isPlaying(){
+  return _playing;
 }
 
 void ESPet::updateSensor(){

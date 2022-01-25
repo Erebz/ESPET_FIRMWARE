@@ -13,14 +13,17 @@ class ESPet{
     void tick();
 
     // Actions
-    void feed(double bonus, double malus);
-    void sleep(double bonus, double malus);
-    void play(double bonus, double malus);
-    void treat(double bonus, double malus);
+    bool feed(double bonus, double malus);
+    bool sleep(double bonus, double malus);
+    bool play(double bonus, double malus);
+    bool treat(double bonus, double malus);
     
     bool canSleep();
     bool canPlay();
+    bool canEat();
     void updateSensor();
+    bool isSleeping();
+    bool isPlaying();
     float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
     String exportJson();
     String status();

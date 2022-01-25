@@ -254,11 +254,14 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
       if(n==2){
         // ACTION
-        if(strcmp(args[0], "ACTION")==0){  
+        if(strcmp(args[0], "ACTION")==0){ 
+          ans = "";
+          if(doAction(args[1])) ans = "OK";
+          else ans = "NO";
           char message[30];
           strcpy(message, "ACTION ");
-          strcat(message, args[1]);
-          printConsole(message);
+          strcat(message, ans.c_str());
+          webSocketClient.sendTXT(message);
         }
         // LOAD
         else if(strcmp(args[0], "LOAD")==0){
@@ -315,7 +318,6 @@ void initWebsocket(){
   webSocketClient.setReconnectInterval(5000);
 }
 
-// TODO
 bool loadEspet(int id_pet){
   char url[100];
   strcpy(url, api);
@@ -350,6 +352,20 @@ bool loadEspet(int id_pet){
   }else return false;
 }
 
+bool doAction(char * action){
+  bool reaction = false;
+  if(strcmp(action, "PLAY")==0){
+    reaction = pet->play(10,10);
+  }else if(strcmp(action, "SLEEP")==0){
+    reaction = pet->sleep(10,10);    
+  }else if(strcmp(action, "FEED")==0){
+    reaction = pet->feed(10,10);    
+  }else if(strcmp(action, "TREAT")==0){
+    reaction = pet->treat(10,10);    
+  }
+  return reaction;
+}
+
 void startGame(){
   tft.fillScreen(TFT_BLACK);
 
@@ -373,7 +389,14 @@ void runEspet( void * pvParameters ){
       pet->tick();
       clearValues();
       printValues();
-      Serial.println(pet->status()); 
+      //Serial.println(pet->status()); 
+      if(pet->isSleeping()){
+        printConsole("zZzZZ...");
+      }else if(pet->isPlaying()){
+        printConsole("I'm having fun!");
+      }else{
+        printConsole(" ");
+      }
     }
     vTaskDelay( pdMS_TO_TICKS( 1000 ) );
   }
