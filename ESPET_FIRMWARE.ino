@@ -1,5 +1,6 @@
 #include "ESPetWifiConfig.h"
 #include "ESPet.h"
+#include "ESPet_images.h"
 #include <WiFi.h>
 #include <WebServer.h>
 #include <TFT_eSPI.h>
@@ -35,8 +36,8 @@ TFT_eSprite sprite = TFT_eSprite(&tft);
 TaskHandle_t task_pet;
 ESPet * pet;
 bool GAME_ON = false;
-#define DHTPIN 24
-#define DHTTYPE 10
+#define DHTPIN 26
+#define DHTTYPE 22
 
 bool connectWifi(String ssid_, String password_, int attempts){
   WiFi.mode(WIFI_MODE_STA);
@@ -240,13 +241,31 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       printConsole("SAVING...");
     }
     else if(strcmp((char *) payload, "INFO")==0){
-      pet_json = "{" + pet->exportJson() + "}";
+      pet_json = "{" + pet->exportJsonAndSensors() + "}";
       Serial.println(pet_json);
-      char message[150];
+      char message[200];
       strcpy(message, "INFO ");
       strcat(message, pet_json.c_str());
       webSocketClient.sendTXT(message);
-    }else{
+    }
+    else if(strcmp((char *) payload, "ESPET?")==0){
+      ans = "" + String(last_espet);
+      char message[15];
+      strcpy(message, "ESPET? ");
+      strcat(message, ans.c_str());
+      webSocketClient.sendTXT(message);
+    }else if(strcmp((char *) payload, "WYD?")==0){
+      ans = "NOTHING";
+      if(pet->isSleeping()) ans = "SLEEPING";
+      if(pet->isPlaying()) ans = "PLAYING";
+      if(pet->isEating()) ans = "EATING";
+      if(pet->isTreating()) ans = "TREATS";
+      char message[30];
+      strcpy(message, "WYD? ");
+      strcat(message, ans.c_str());
+      webSocketClient.sendTXT(message);
+    }
+    else{
       
       // multiple args commands :
       char * args[10];
@@ -265,7 +284,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         }
         // LOAD
         else if(strcmp(args[0], "LOAD")==0){
-          Serial.println("GOT LOAD COMMAND");
           if(GAME_ON && last_espet > 0){
             Serial.println("SAVING BEFORE LOADING...");
             pet_json = "{" + pet->exportJson() + ",\"id_pet\":" + last_espet + "}";
@@ -278,7 +296,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
               Serial.println("COULDN'T SAVE BEFORE LOADING");
             }
           }
-  
           GAME_ON = false;
           char load_pet[20];
           strcpy(load_pet, args[1]);
@@ -354,14 +371,15 @@ bool loadEspet(int id_pet){
 
 bool doAction(char * action){
   bool reaction = false;
+  if(!pet->available()) return false;
   if(strcmp(action, "PLAY")==0){
-    reaction = pet->play(10,10);
+    reaction = pet->play(50,30);
   }else if(strcmp(action, "SLEEP")==0){
-    reaction = pet->sleep(10,10);    
+    reaction = pet->sleep(50,70);    
   }else if(strcmp(action, "FEED")==0){
-    reaction = pet->feed(10,10);    
+    reaction = pet->feed(70,10);    
   }else if(strcmp(action, "TREAT")==0){
-    reaction = pet->treat(10,10);    
+    reaction = pet->treat(50,25);    
   }
   return reaction;
 }
@@ -384,27 +402,47 @@ void startGame(){
 }
 
 void runEspet( void * pvParameters ){
+  int refresh = 0;
   for(;;){
     if(GAME_ON){
       pet->tick();
       clearValues();
       printValues();
+      printStatus();
       //Serial.println(pet->status()); 
       if(pet->isSleeping()){
         printConsole("zZzZZ...");
       }else if(pet->isPlaying()){
         printConsole("I'm having fun!");
+      }else if(pet->isEating()){
+        printConsole("Food!! Thank you.");
+      }else if(pet->isTreating()){
+        printConsole("Candies!!! Yummy!");
       }else{
         printConsole(" ");
       }
     }
+    /*refresh = (refresh + 1) % 10;
+    if(refresh == 0){
+      drawHUD();
+      drawPet();
+      clearValues();
+      printValues();
+    }*/
     vTaskDelay( pdMS_TO_TICKS( 1000 ) );
   }
 }
 
 void drawPet(){
-  uint16_t * image;
-  image = baby1;
+  const uint16_t * image;
+  if(pet->getType() == "baby"){
+    image = baby;  
+  }else if(pet->getType() == "gumball"){
+    image = gumball;
+  }else if(pet->getType() == "rare"){
+    image = rare;
+  }else image = baby;
+  
   uint16_t transparent = TFT_TRANSPARENT;
   uint16_t color = TFT_WHITE; 
   sprite.setColorDepth(8);         
@@ -482,6 +520,21 @@ void printConsole(String message){
   tft.setCursor(15, 275);
   tft.print(message);
 }
+
+void printStatus(){
+  String status = " ";
+  if(pet->isSleeping()) status = "<sleeping>";
+  if(pet->isPlaying()) status = "<playing>";
+  if(pet->isEating()) status = "<eating>";
+  if(pet->isTreating()) status = "<eating>";
+  tft.setTextSize(1);
+  tft.setCursor(100, 90);
+  tft.print("                       ");
+  tft.setCursor(120 - (int) (status.length()*2), 90);
+  tft.print(status.c_str());
+  tft.setTextSize(2);
+}
+
 
 void setup() {
   Serial.begin(9600);

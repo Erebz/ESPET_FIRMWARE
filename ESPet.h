@@ -2,10 +2,6 @@
 #define ESPet_h
 #include <WString.h>
 #include <DHT.h>
-#include "Arduino.h"
-
-extern uint16_t baby1 [10000] PROGMEM;
-extern uint16_t baby2 [10000] PROGMEM;
 
 class ESPet{
   public:
@@ -24,8 +20,12 @@ class ESPet{
     void updateSensor();
     bool isSleeping();
     bool isPlaying();
+    bool isEating();
+    bool isTreating();
+    bool available();
     float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
     String exportJson();
+    String exportJsonAndSensors();
     String status();
 
     // Getters
@@ -37,7 +37,8 @@ class ESPet{
     int getHealth();
     int getTemperature();
     int getHumidity();
-      
+    String getType();
+          
   private:
     String _name;
     double _happiness;
@@ -47,6 +48,8 @@ class ESPet{
     double _health;
     bool _sleeping;
     bool _playing;
+    bool _eating;
+    bool _treating;
     String _type;
     DHT * _dht;
     float _humidity;
@@ -55,6 +58,8 @@ class ESPet{
     int _ticksMax;
     int _playTime;
     int _sleepTime;
+    int _eatTime;
+    int _treatTime;
 };
 
 #endif // ESPet_h
